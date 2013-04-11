@@ -182,6 +182,7 @@ void init_PWM(void);
 extern void Timer0IntHandler(void);
 void sendData(void);
 void uart_puts(char *);
+void getCommand(void);
 
 
 //*****************************************************************************
@@ -200,12 +201,14 @@ __error__(char *pcFilename, unsigned long ulLine)
 void initADC(void){
    	//enable the adc0 peripherial.
    	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+   	SysCtlDelay(100);
    	//set the speed to 1msps.
    	//SysCtlADCSpeedSet(SYSCTL_ADCSPEED_1MSPS);
    	//set the auto avergage to 64.
    	//ADCHardwareOversampleConfigure(ADC0_BASE, 64);
    	//before setting up I must disable the sequence 0.
    	ADCSequenceDisable(ADC0_BASE, 0);
+   	SysCtlDelay(100);
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
@@ -239,6 +242,7 @@ void initADC(void){
 
    	//enable the sequence again!
    	ADCSequenceEnable(ADC0_BASE, 0);
+   	SysCtlDelay(100);
 }
 
 
@@ -350,18 +354,20 @@ void init(void)
 		UARTStdioInit(0);
 
 		//unsigned long ulFrequency = 60000; //Used to set Clock Period
-		unsigned long ulFrequency = 400000; // Amb aquest valor tindrem una frequència de 100Hz de interrupció
+		//unsigned long ulFrequency = 400000; // Amb aquest valor tindrem una frequència de 100Hz de interrupció
 											// No fem més frequència pq el gyro té un Bandwidht de 140 Hz
 
+		unsigned long ulFrequency = 100;// Amb aquest valor tindrem una frequència de 100Hz de interrupció
+		// No fem més frequència pq el gyro té un Bandwidht de 140 Hz
 		//timer 0 set-up
 		SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
 		TimerConfigure(TIMER0_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC);
 		// Delay Calculations -- set collection period via ulFrequency -- see notes at beginning.
-		ulPeriod = (SysCtlClockGet() / ulFrequency); //100Hz freq.
+		ulPeriod = (SysCtlClockGet() / ulFrequency)/2; //100Hz freq.
 		TimerLoadSet(TIMER0_BASE, TIMER_A, ulPeriod-1);
 
 	 // Freeze the timer counting if we are debugging (the counting is enabled automatically with the cpu).
-		TimerControlStall(TIMER0_BASE, TIMER_A, true);
+		//TimerControlStall(TIMER0_BASE, TIMER_A, true);
 
 		IntEnable(INT_TIMER0A);
 		TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
@@ -508,7 +514,7 @@ int main(void)
           //UARTprintf("Test");
           //UARTprintf("Test %d\n",buffer);
           //buffer++;
-          SysCtlDelay(SysCtlClockGet() / 10 / 3);
+          SysCtlDelay(SysCtlClockGet() / 1000 / 2);
           //sendData();
         }
 }
@@ -519,6 +525,9 @@ int main(void)
 ***************************************************************/
 void Timer0IntHandler(void)
 {
+		// Clear the timer interrupt
+		TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+
 		fireAdc();
 		//get all values from the ADCs
 		Ad_gyro = getAdc(Ad_kanal_gyro);
@@ -566,6 +575,7 @@ void Timer0IntHandler(void)
         //gear();
         steering();
         set_pwm();
+        parser();
         sendData();
 }
 
@@ -774,11 +784,11 @@ unsigned short Channel;
 int Wert;
 int NextChar;
 
-  //NextChar = uart_getc_nowait();
+  NextChar = uart_getc_nowait();
   while(NextChar != 10 && NextChar !=-1 && StringCounter < 40)
   {
     if (NextChar != '\0' && NextChar != 13) {Inputstring[StringCounter++] = (unsigned char)NextChar;}
-   // NextChar = uart_getc_nowait();
+    NextChar = uart_getc_nowait();
   }
   if (NextChar == 10)
   {
@@ -859,6 +869,8 @@ void uart_puts(char * s) {
         s++;
     }
 }
+
+
 
 
 

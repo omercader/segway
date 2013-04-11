@@ -1730,3 +1730,16 @@ UARTStdioIntHandler(void)
 //! @}
 //
 //*****************************************************************************
+
+
+
+
+
+int uart_getc_nowait(void)
+{
+	if(UARTRxBytesAvail()!= 0){
+		return UARTgetc();
+	}else{
+		return -1;
+	}
+}

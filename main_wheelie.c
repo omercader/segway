@@ -34,6 +34,7 @@
 #include "utils/uartstdio.h"
 #include "ars.h"
 #include "driverlib/rom.h"
+#include "driverlib/eeprom.h"
 
 //ADC Inputs
 #define Ad_kanal_batt   1
@@ -107,18 +108,27 @@ unsigned short cw_r;
 unsigned short cw_l;
 
 //This 6 values can controlled from the displayunit to improove PID and steering
-int  Parameter1=15;             //Steering depends on speed                             higher Value, lower Steeringsignal
+unsigned long  Parameter1=15;             //Steering depends on speed                             higher Value, lower Steeringsignal
 unsigned int P1 = 0x10;
-int  Parameter2=27;             //Speederror from the Geartooths                higher Value, lower Correction
+unsigned long  Parameter2=27;             //Speederror from the Geartooths                higher Value, lower Correction
 unsigned int P2 = 0x20;
-int  Parameter3=210;
+unsigned long  Parameter3=210;
 unsigned int P3 = 0x30;
-int  Parameter4=50;    //Gain P-Part
+unsigned long  Parameter4=50;    //Gain P-Part
 unsigned int P4 = 0x40;
-int  Parameter5=215;    //Gain I-Part
+unsigned long  Parameter5=215;    //Gain I-Part
 unsigned int P5 = 0x50;
-int  Parameter6=155;   //Gain D-Part                                                    higher Value, lower Gain
+unsigned long  Parameter6=155;   //Gain D-Part                                                    higher Value, lower Gain
 unsigned int P6 = 0x60;
+unsigned long pulData[6] = [Parameter1,Parameter2,Parameter3,Parameter4,Parameter5,Parameter6];
+//pulData[0] = Parameter1;
+//pulData[1] = Parameter2;
+//pulData[2] = Parameter3;
+//pulData[3] = Parameter4;
+//pulData[4] = Parameter5;
+//pulData[5] = Parameter6;
+
+
 
 unsigned short Mmode = m_standby;
 unsigned short Errno = 0;
@@ -373,6 +383,10 @@ void init(void)
 		TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 		IntMasterEnable();
 
+		//Inicialitzarem le EEPROM
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
+		EEPROMInit();
+
 
 		//TimerEnable(TIMER0_BASE, TIMER_A);
 
@@ -398,11 +412,8 @@ void init(void)
         	Parameter1 = 14;        // write the Standardvalues to EEPROM
         	saveData();
         }else{
-       //    eeprom_read_block(&Parameter2,(unsigned short *)P2,sizeof(int));
-       //    eeprom_read_block(&Parameter3,(unsigned short *)P3,sizeof(int));
-       //    eeprom_read_block(&Parameter4,(unsigned short *)P4,sizeof(int));
-       //    eeprom_read_block(&Parameter5,(unsigned short *)P5,sizeof(int));
-       //    eeprom_read_block(&Parameter6,(unsigned short *)P6,sizeof(int));
+           EEPROMRead(pulRead,0x0,sizeof(pulRead));
+
         }
 }
 /*********************************************************************
@@ -881,10 +892,6 @@ void uart_puts(char * s) {
 ***************************************************************************************/
 void saveData(void)
 {
-        //        eeprom_write_block(&Parameter1,(unsigned short *)P1,sizeof(int));
-        //        eeprom_write_block(&Parameter2,(unsigned short *)P2,sizeof(int));
-        //        eeprom_write_block(&Parameter3,(unsigned short *)P3,sizeof(int));
-        //        eeprom_write_block(&Parameter4,(unsigned short *)P4,sizeof(int));
-        //        eeprom_write_block(&Parameter5,(unsigned short *)P5,sizeof(int));
-        //        eeprom_write_block(&Parameter6,(unsigned short *)P6,sizeof(int));
+                EEPROMProgram(pulRead,0x0,sizeof(pulRead));
+
 }

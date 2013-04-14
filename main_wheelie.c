@@ -46,6 +46,8 @@
 #define Ad_kanal_roll_adxl  4
 #define Ad_kanal_roll_gyro  5
 
+#define APP_INPUT_BUF_SIZE  128
+
 //maximum Power, limit to 20 for first Tests, then you don't destroy your furniture
 #define max_PWM         550
 //limit the I-Part of the PID-Control
@@ -120,14 +122,9 @@ unsigned long  Parameter5=215;    //Gain I-Part
 unsigned int P5 = 0x50;
 unsigned long  Parameter6=155;   //Gain D-Part                                                    higher Value, lower Gain
 unsigned int P6 = 0x60;
-unsigned long pulData[6] = [Parameter1,Parameter2,Parameter3,Parameter4,Parameter5,Parameter6];
-//pulData[0] = Parameter1;
-//pulData[1] = Parameter2;
-//pulData[2] = Parameter3;
-//pulData[3] = Parameter4;
-//pulData[4] = Parameter5;
-//pulData[5] = Parameter6;
-
+//unsigned long pulData[6] = [Parameter1,Parameter2,Parameter3,Parameter4,Parameter5,Parameter6];
+unsigned long pulData[6];
+static char g_cInput[APP_INPUT_BUF_SIZE];
 
 
 unsigned short Mmode = m_standby;
@@ -344,7 +341,8 @@ void init(void)
 {
 
 
-		ROM_FPULazyStackingEnable();
+		ROM_FPUEnable();
+	    ROM_FPUStackingEnable();
 
         //inicialitzarem el Clolck del system a uns 40 mhz i despres inicialitzarem el Timer0 que sera el que controli tot el procés
 
@@ -412,7 +410,7 @@ void init(void)
         	Parameter1 = 14;        // write the Standardvalues to EEPROM
         	saveData();
         }else{
-           EEPROMRead(pulRead,0x0,sizeof(pulRead));
+           EEPROMRead(pulData,0x0,sizeof(pulData));
 
         }
 }
@@ -501,6 +499,14 @@ void startup(void)
 int main(void)
 
 {
+
+
+	pulData[0] = Parameter1;
+	pulData[1] = Parameter2;
+	pulData[2] = Parameter3;
+	pulData[3] = Parameter4;
+	pulData[4] = Parameter5;
+	pulData[5] = Parameter6;
 
 	int buffer = 0;
 
@@ -789,52 +795,102 @@ void err_value(void)
 void parser(void)
 {
 
-char *ptr;
+char * strm;
 char delimiter[] = ":=";
 unsigned short Channel;
 int Wert;
 int NextChar;
 
-  NextChar = uart_getc_nowait();
-  while(NextChar != 10 && NextChar !=-1 && StringCounter < 40)
-  {
-    if (NextChar != '\0' && NextChar != 13) {Inputstring[StringCounter++] = (unsigned char)NextChar;}
-    NextChar = uart_getc_nowait();
-  }
-  if (NextChar == 10)
-  {
-        if (Inputstring[1] != 58 || StringCounter > 39) {goto Ausgang;}
-        Inputstring[StringCounter++] = '\0';
+  //NextChar = uart_getc_nowait();
+  //while(NextChar != 10 && NextChar !=-1 && StringCounter < 40)
+  //{
+  //  if (NextChar != '\0' && NextChar != 13) {Inputstring[StringCounter++] = (unsigned char)NextChar;}
+  //  NextChar = uart_getc_nowait();
+  //}
+  //if (NextChar == 10)
+  //{
+  //      if (Inputstring[1] != 58 || StringCounter > 39) {goto Ausgang;}
+  //      Inputstring[StringCounter++] = '\0';
     //ptr = strtok(Inputstring, delimiter);
 
-    if(ptr != NULL)
-        {
-            if (atoi(ptr)==0)
-                {
+  //  if(ptr != NULL)
+  //      {
+  //          if (atoi(ptr)==0)
+  //              {
       //                  ptr = strtok(NULL, delimiter);
-                    Channel = atoi(ptr);
+  //                  Channel = atoi(ptr);
       //              ptr = strtok(NULL, delimiter);
-                    Wert = atoi(ptr);
-                        if (Channel == 17) Parameter1 = Wert;
-                        if (Channel == 18) Parameter2 = Wert;
-                        if (Channel == 19) Parameter3 = Wert;
-                        if (Channel == 20) Parameter4 = Wert;
-                        if (Channel == 21) Parameter5 = Wert;
-                        if (Channel == 22) Parameter6 = Wert;
-                        if (Channel == 16)
-                        {
-                                saveData();
+  //                  Wert = atoi(ptr);
+  //                      if (Channel == 17) Parameter1 = Wert;
+  //                      if (Channel == 18) Parameter2 = Wert;
+  //                      if (Channel == 19) Parameter3 = Wert;
+  //                      if (Channel == 20) Parameter4 = Wert;
+  //                      if (Channel == 21) Parameter5 = Wert;
+  //                      if (Channel == 22) Parameter6 = Wert;
+  //                      if (Channel == 16)
+  //                      {
+  //                              saveData();
         //                        sprintf( Text, "2:11=STORED!\r\n");
-                        UARTprintf (Text);
-                                SysCtlDelay(500);
-                                Zaehler =0;
-                        }
-                }
+                        //UARTprintf (Text);
+                        //UARTFlushTx(true);
+  //                              SysCtlDelay(500);
+  //                              Zaehler =0;
+  //                      }
+  //              }
+  //      }
+  //      Ausgang:
+  //      Inputstring[0] = '\0';
+  //      StringCounter = 0;
+  //}
+//
+        // Peek to see if a full command is ready for processing
+        //
+        if(UARTPeek('\r') != -1)
+        {
+            //
+            // millisecond delay.  A SysCtlSleep() here would also be OK.
+            //
+            SysCtlDelay(SysCtlClockGet() / (1000 / 3));
+
+
+            //
+            // a '\r' was detected get the line of text from the user.
+            //
+            UARTgets(g_cInput,sizeof(g_cInput));
+            strm = (char *)strtok(g_cInput,delimiter);
+
+            if(strm != NULL){
+
+            	if (atoi(strm)==0)
+            	                {
+            	                        strm = (char *)strtok(NULL, delimiter);
+            	                    Channel = atoi(strm);
+            	                    strm = (char *)strtok(NULL, delimiter);
+            	                    Wert = atoi(strm);
+            	                        if (Channel == 17) Parameter1 = Wert;
+            	                        if (Channel == 18) Parameter2 = Wert;
+            	                        if (Channel == 19) Parameter3 = Wert;
+            	                        if (Channel == 20) Parameter4 = Wert;
+            	                        if (Channel == 21) Parameter5 = Wert;
+            	                        if (Channel == 22) Parameter6 = Wert;
+            	                        if (Channel == 16)
+            	                        {
+            	                                saveData();
+            	      //                        sprintf( Text, "2:11=STORED!\r\n");
+            	                        //UARTprintf (Text);
+            	                        //UARTFlushTx(true);
+            	  //                              SysCtlDelay(500);
+            	                                Zaehler =0;
+            	                        }
+            	                }
+            }
         }
-        Ausgang:
-        Inputstring[0] = '\0';
-        StringCounter = 0;
-  }
+
+
+
+
+
+
 }
 
 /***************************************************************************************
@@ -844,22 +900,32 @@ void sendData(void){
 
 		  //UARTprintf(":");
 	      UARTprintf("2:4=%d\n",(int)tilt_angle);
+	      SysCtlDelay(15000);
+	      //UARTFlushTx(false);
 	      UARTprintf("2:5=%d\n",(int)roll_angle);
+	      SysCtlDelay(15000);
+	      //UARTFlushTx(false);
 	      //UARTprintf("%d\n",Rockersq);
 	      //UARTprintf("%d\n",Rocker_sensivity);
 	      //UARTprintf("%d\n",Z_diff);
 	      //UARTprintf("%d\n",Steeringsignal);
 	      UARTprintf("2:7=%d\n",drive_l);
+	      SysCtlDelay(15000);
+	      //UARTFlushTx(false);
 	      UARTprintf("2:8=%d\n",drive_r);
-	      SysCtlDelay(1000);
+	      //UARTFlushTx(false);
+	      SysCtlDelay(15000);
 	      //UARTprintf("!\n");
 	      UARTprintf("2:9=%d\n",Speed_left_out);
+	      SysCtlDelay(15000);
+	      //UARTFlushTx(false);
 	      UARTprintf("2:10=%d\n",Speed_right_out);
+	      //UARTFlushTx(false);
 	      //UARTprintf("%d\n",Mmode);
 	      //UARTprintf("%d\n",Ad_batt);
 	      //UARTprintf("2:7%d\n",Curr_left);
 	      //UARTprintf("2:8%d\n",Curr_right);
-	      SysCtlDelay(1000);
+	      SysCtlDelay(15000);
 	      //UARTprintf("?");
 	      //UARTprintf("%d\n",Parameter1);
 	      //UARTprintf("%d\n",Parameter2);
@@ -867,7 +933,9 @@ void sendData(void){
 	      //UARTprintf("%d\n",Parameter4);
 	      //UARTprintf("%d\n",Parameter5);
 	      //UARTprintf("%d\n",Parameter6);
+	      UARTFlushTx(false);
 
+	      SysCtlDelay(15000);
 
 
 }
@@ -892,6 +960,6 @@ void uart_puts(char * s) {
 ***************************************************************************************/
 void saveData(void)
 {
-                EEPROMProgram(pulRead,0x0,sizeof(pulRead));
+                EEPROMProgram(pulData,0x0,sizeof(pulData));
 
 }

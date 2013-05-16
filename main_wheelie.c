@@ -118,7 +118,8 @@ unsigned long  Parameter3=210;
 unsigned int P3 = 0x30;
 unsigned long  Parameter4=50;    //Gain P-Part
 unsigned int P4 = 0x40;
-unsigned long  Parameter5=215;    //Gain I-Part
+//unsigned long  Parameter5=215;//Gain I-Part
+unsigned long  Parameter5=100;
 unsigned int P5 = 0x50;
 unsigned long  Parameter6=155;   //Gain D-Part                                                    higher Value, lower Gain
 unsigned int P6 = 0x60;
@@ -293,7 +294,7 @@ void init_PWM(void)
 	//
 	// Right Motor
 	// PWM3 -> PB3 DIRECTION BIT
-	// PWM4 -> PB4 T1CCP0
+	// PWM4 -> PF2 T1CCP0
 
 
 	ulPeriodPWM = 1000;
@@ -309,12 +310,12 @@ void init_PWM(void)
 	GPIOPinConfigure(GPIO_PF3_T1CCP1);
 	GPIOPinTypeTimer(GPIO_PORTF_BASE, GPIO_PIN_3);
 
-	// Configure PB4 T1CCP0 and PB3 as Direction bit
+	// Configure PF2 T1CCP0 and PB3 as Direction bit
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
 	GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE,GPIO_PIN_3);
 	//GPIOPinConfigure(GPIO_PB3_T3CCP1);
-	GPIOPinConfigure(GPIO_PB4_T1CCP0);
-	GPIOPinTypeTimer(GPIO_PORTB_BASE,GPIO_PIN_4);
+	GPIOPinConfigure(GPIO_PF2_T1CCP0);
+	GPIOPinTypeTimer(GPIO_PORTF_BASE,GPIO_PIN_2);
 
 	// Configure timer 1
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
@@ -519,10 +520,14 @@ int main(void)
 
         //UARTprintf("This is Wheelie!!\n");
 
-		init_Gyro1DKalman(&filter, 0.0001, 0.0003, 0.3);
-        init_Gyro1DKalman(&filterX, 0.0001, 0.0003, 0.3);
-        //dt = 0.0157;   // time passed in s since last call
+	//	init_Gyro1DKalman(&filter, 0.0001, 0.0003, 0.3);
+	//	init_Gyro1DKalman(&filterX, 0.0001, 0.0003, 0.3);
+		init_Gyro1DKalman(&filter, 0.08, 0.0003, 0.1);
+        init_Gyro1DKalman(&filterX, 0.08, 0.0003, 0.1);
+
+		//dt = 0.0157;   // time passed in s since last call
         dt = 0.01;   // time passed in s since last call
+
 
         while(1)
         {
@@ -604,7 +609,8 @@ void Timer0IntHandler(void)
 void algo(void)
 {
     Balance_moment =  Angle_Rate * Parameter5 / 100  + tilt_angle;                        //Angle_Rate is D-Part, tilt_angle is P-Part of the PID-Controller
-    Balance_moment = Balance_moment * 29;
+    //Balance_moment = Balance_moment * 29;
+    Balance_moment = Balance_moment * 10;
         //The I-Part of the PID-Controller
         Drive_sum += Balance_moment;
     if(Drive_sum >  Drivesumlimit)Drive_sum = Drivesumlimit;    //you have to limit the I-Controller
@@ -873,6 +879,22 @@ int NextChar;
             	                        if (Channel == 20) Parameter4 = Wert;
             	                        if (Channel == 21) Parameter5 = Wert;
             	                        if (Channel == 22) Parameter6 = Wert;
+            	                        if (Channel == 25)
+            	                        {
+            	                        	UARTprintf("2:12=%d\n",Parameter1);
+											SysCtlDelay(15000);
+											UARTprintf("2:13=%d\n",Parameter2);
+											SysCtlDelay(15000);
+											UARTprintf("2:14=%d\n",Parameter3);
+											SysCtlDelay(15000);
+											UARTprintf("2:15=%d\n",Parameter4);
+											SysCtlDelay(15000);
+											UARTprintf("2:16=%d\n",Parameter5);
+											SysCtlDelay(15000);
+											UARTprintf("2:17=%d\n",Parameter6);
+											SysCtlDelay(15000);
+
+            	                        }
             	                        if (Channel == 16)
             	                        {
             	                                saveData();

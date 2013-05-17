@@ -511,6 +511,10 @@ int main(void)
 
 	int buffer = 0;
 
+	init_Gyro1DKalman(&filter, 0.08, 0.0003, 0.1);
+    init_Gyro1DKalman(&filterX, 0.08, 0.0003, 0.1);
+
+
         init();
         startup();
 
@@ -522,8 +526,6 @@ int main(void)
 
 	//	init_Gyro1DKalman(&filter, 0.0001, 0.0003, 0.3);
 	//	init_Gyro1DKalman(&filterX, 0.0001, 0.0003, 0.3);
-		init_Gyro1DKalman(&filter, 0.08, 0.0003, 0.1);
-        init_Gyro1DKalman(&filterX, 0.08, 0.0003, 0.1);
 
 		//dt = 0.0157;   // time passed in s since last call
         dt = 0.01;   // time passed in s since last call
@@ -609,10 +611,10 @@ void Timer0IntHandler(void)
 void algo(void)
 {
     Balance_moment =  Angle_Rate * Parameter5 / 100  + tilt_angle;                        //Angle_Rate is D-Part, tilt_angle is P-Part of the PID-Controller
-    //Balance_moment = Balance_moment * 29;
-    Balance_moment = Balance_moment * 10;
+    Balance_moment = Balance_moment * 29;
+    //Balance_moment = Balance_moment * 10;
         //The I-Part of the PID-Controller
-        Drive_sum += Balance_moment;
+   //     Drive_sum += Balance_moment;
     if(Drive_sum >  Drivesumlimit)Drive_sum = Drivesumlimit;    //you have to limit the I-Controller
     if(Drive_sum <- Drivesumlimit)Drive_sum =-Drivesumlimit;    //Drive_sum max = 255*150
 
@@ -893,8 +895,8 @@ int NextChar;
 											SysCtlDelay(15000);
 											UARTprintf("2:17=%d\n",Parameter6);
 											SysCtlDelay(15000);
+									    }
 
-            	                        }
             	                        if (Channel == 16)
             	                        {
             	                                saveData();
@@ -924,10 +926,10 @@ void sendData(void){
 	      UARTprintf("2:4=%d\n",(int)tilt_angle);
 	      SysCtlDelay(15000);
 	      //UARTFlushTx(false);
-	      UARTprintf("2:5=%d\n",(int)roll_angle);
+	      UARTprintf("2:5=%d\n",(int)Balance_moment);
 	      SysCtlDelay(15000);
 	      //UARTFlushTx(false);
-	      //UARTprintf("%d\n",Rockersq);
+	      //UARTprin tf("%d\n",Rockersq);
 	      //UARTprintf("%d\n",Rocker_sensivity);
 	      //UARTprintf("%d\n",Z_diff);
 	      //UARTprintf("%d\n",Steeringsignal);
